@@ -39,14 +39,12 @@ trigger:
 pool:
   vmImage: 'windows-latest'
 
+# Reference the variable group (e.g., M365Credentials)
 variables:
-  ConfigurationFolder: 'Configurations'
-  TenantId: $(TenantId)
-  ClientId: $(ClientId)
-  ClientSecret: $(ClientSecret) # Secret variable
+  - group: M365Credentials
 
 steps:
-# Step 1: Install the necessary modules
+# Step 1: Install the necessary PowerShell modules
 - task: PowerShell@2
   displayName: 'Install Microsoft365DSC Module'
   inputs:
@@ -54,13 +52,13 @@ steps:
     script: |
       Install-Module -Name Microsoft365DSC -Force -AllowClobber
 
-# Step 2: Create a PSCredential object and pass to DSC
+# Step 2: Create a PSCredential object and compile the DSC configuration into MOF files
 - task: PowerShell@2
   displayName: 'Compile DSC Configurations to MOF with Credentials'
   inputs:
     targetType: 'inline'
     script: |
-      $configFolder = "$(ConfigurationFolder)"
+      $configFolder = "$(Build.SourcesDirectory)\Configurations"
       $outputFolder = "$(Build.ArtifactStagingDirectory)\MOF"
 
       # Create output folder if it doesn't exist
@@ -68,9 +66,9 @@ steps:
         New-Item -Path $outputFolder -ItemType Directory
       }
 
-      # Create a PSCredential object using the pipeline variables
-      $securePassword = ConvertTo-SecureString $(ClientSecret) -AsPlainText -Force
-      $AdminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $(ClientId), $securePassword
+      # Create a PSCredential object using the variables from the variable group
+      $securePassword = ConvertTo-SecureString "$(ClientSecret)" -AsPlainText -Force
+      $AdminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$(ClientId)", $securePassword
 
       # Get all .ps1 configuration files in the configurations folder
       $configFiles = Get-ChildItem -Path $configFolder -Filter *.ps1
@@ -78,14 +76,15 @@ steps:
       foreach ($configFile in $configFiles) {
         Write-Host "Processing configuration file: $($configFile.FullName)"
         
-        # Execute each configuration file and pass the credentials
+        # Source the configuration file to define the configuration function
         . $configFile.FullName
 
-        # Get the configuration function name from the filename (assumed convention)
+        # Get the configuration function name from the filename (assuming it matches the file name)
         $configFunctionName = $configFile.BaseName
 
         # Call the configuration function to generate MOF files
-        Start-DscConfiguration -Path .\$configFunctionName -OutputPath $outputFolder -Verbose -Wait -Force -Credential $AdminCredential
+        # Use the output folder for MOF file storage
+        $configFunctionName -AdminCredential $AdminCredential -OutputPath $outputFolder
 
         Write-Host "MOF files generated for $configFunctionName."
       }
@@ -100,5 +99,6 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)\MOF'
     ArtifactName: 'MOFFiles'
     publishLocation: 'Container'
+
 
 ```
