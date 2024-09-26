@@ -92,6 +92,46 @@ steps:
       # List the MOF files generated
       Get-ChildItem -Path $outputFolder -Filter *.mof | ForEach-Object { Write-Host "Generated MOF file: $_" }
 
+- task: PowerShell@2
+  displayName: 'Compile DSC Configurations to MOF with Credentials'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $configFolder = "$(Build.SourcesDirectory)\Configurations"
+      $outputFolder = "$(Build.ArtifactStagingDirectory)\MOF"
+
+      # Create output folder if it doesn't exist
+      if (-not (Test-Path $outputFolder)) {
+        New-Item -Path $outputFolder -ItemType Directory
+      }
+
+      # Create a PSCredential object using the variables from the variable group
+      $securePassword = ConvertTo-SecureString "$(ClientSecret)" -AsPlainText -Force
+      $AdminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$(ClientId)", $securePassword
+
+      # Get all .ps1 configuration files in the configurations folder
+      $configFiles = Get-ChildItem -Path $configFolder -Filter *.ps1
+
+      foreach ($configFile in $configFiles) {
+        Write-Host "Processing configuration file: $($configFile.FullName)"
+        
+        # Source the configuration script (this defines the configuration)
+        . $configFile.FullName
+
+        # Get the configuration function name from the filename (assuming it matches the file name)
+        $configFunctionName = $configFile.BaseName
+
+        # Call the configuration function directly
+        Write-Host "Invoking configuration: $configFunctionName"
+        Invoke-Expression "$configFunctionName -AdminCredential `$AdminCredential -OutputPath `$outputFolder"
+
+        Write-Host "MOF files generated for $configFunctionName."
+      }
+
+      # List the MOF files generated
+      Get-ChildItem -Path $outputFolder -Filter *.mof | ForEach-Object { Write-Host "Generated MOF file: $_" }
+
+
 # Step 3: Publish the MOF files as pipeline artifacts
 - task: PublishBuildArtifacts@1
   displayName: 'Publish MOF Files'
