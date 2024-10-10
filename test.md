@@ -1,5 +1,42 @@
 ``` yaml
 ---
+---
+- name: Run Python script from scripts folder on localhost
+  hosts: localhost
+  connection: local
+  vars:
+    username: "your_username"
+    password: "your_password"
+    script_folder: "scripts"  # Folder where the Python script is located
+    script_name: "your_script.py"  # Python script filename
+
+  tasks:
+    - name: Check if the Python script exists in the scripts folder
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/{{ script_folder }}/{{ script_name }}"
+      register: script_check
+
+    - name: Fail if the script does not exist
+      fail:
+        msg: "The Python script '{{ script_name }}' was not found in the '{{ script_folder }}' folder."
+      when: not script_check.stat.exists
+
+    - name: Run Python script with arguments from the scripts folder
+      ansible.builtin.command:
+        cmd: "python3 {{ script_name }} {{ username }} {{ password }}"
+        chdir: "{{ playbook_dir }}/{{ script_folder }}"  # Change directory to the scripts folder
+      register: result
+
+    - name: Show script output
+      debug:
+        var: result.stdout
+
+    - name: Show script error (if any)
+      debug:
+        var: result.stderr
+        when: result.rc != 0
+
+---
 - name: Run Python script with username and password arguments
   hosts: all
   vars:
