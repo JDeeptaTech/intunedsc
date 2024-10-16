@@ -168,3 +168,35 @@ if ($applyConfig -eq 'Y') {
 }
 
 ```
+
+``` powershell
+# Helper function to merge two objects, overriding common properties
+function Merge-Objects {
+    param (
+        [PSCustomObject]$PrimaryObject,
+        [PSCustomObject]$OverrideObject
+    )
+    
+    # Clone the primary object to avoid modifying it directly
+    $MergedObject = $PrimaryObject.PSObject.Copy()
+
+    # Loop through each property in the override object
+    $OverrideObject | Get-Member -MemberType Properties | ForEach-Object {
+        $propertyName = $_.Name
+        
+        # If the property exists in both objects, override it
+        if ($MergedObject.PSObject.Properties.Match($propertyName)) {
+            $MergedObject | Add-Member -MemberType NoteProperty -Name $propertyName -Value $OverrideObject.$propertyName -Force
+        }
+    }
+    
+    return $MergedObject
+}
+
+# Merge obj1 and obj2, properties in obj2 override obj1
+$mergedObject = Merge-Objects -PrimaryObject $obj1 -OverrideObject $obj2
+
+# Output the merged object
+$mergedObject
+
+```
