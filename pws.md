@@ -75,3 +75,96 @@ RUN powershell -Command \
 CMD ./run.cmd
 
 ```
+
+``` powershell
+# Import Required Modules
+Import-Module Microsoft365DSC
+Import-Module powershell-yaml
+
+# Load YAML Configuration
+$configFilePath = "./config.yml"
+$configData = ConvertFrom-Yaml (Get-Content $configFilePath -Raw)
+
+# Define Output Path for the Generated Configuration
+$outputPath = "./GeneratedConfig.ps1"
+
+# Start building the configuration file
+$generatedConfig = @"
+# Auto-generated Microsoft365DSC Configuration
+Configuration MyGeneratedConfig {
+    param (
+        [PSCredential]`$Creds
+    )
+
+    Import-DscResource -ModuleName Microsoft365DSC
+
+    Node "localhost" {
+"@
+
+# Add SharePoint Site Collection Configurations
+foreach ($siteCollection in $configData.sharepoint.siteCollections) {
+    $generatedConfig += @"
+        SPO_SiteCollection "SiteCollection_$($siteCollection.title)" {
+            Url              = "$($siteCollection.url)"
+            Owner            = "$($siteCollection.owner)"
+            StorageQuota     = $($siteCollection.storageQuota)
+            Template         = "$($siteCollection.template)"
+            Title            = "$($siteCollection.title)"
+            Ensure           = "Present"
+            Credential       = `$Creds
+        }
+"@
+}
+
+# Add SharePoint Tenant Settings
+$generatedConfig += @"
+        SPO_TenantSettings "SharePointTenantSettings" {
+            CommentsOnSitePagesDisabled = $($configData.sharepoint.tenantSettings.commentsOnSitePagesDisabled)
+            ExternalSharingAllowed      = $($configData.sharepoint.tenantSettings.externalSharingAllowed)
+            Credential                  = `$Creds
+        }
+"@
+
+# Add Teams Channel Configurations
+foreach ($teamChannel in $configData.teams.teamChannels) {
+    $generatedConfig += @"
+        Teams_TeamChannel "Channel_$($teamChannel.channelName)" {
+            TeamName    = "$($teamChannel.teamName)"
+            DisplayName = "$($teamChannel.channelName)"
+            Credential  = `$Creds
+            Ensure      = "Present"
+        }
+"@
+}
+
+# Add Teams Tenant Settings
+$generatedConfig += @"
+        Teams_TenantSettings "TeamsTenantSettings" {
+            AllowGuestUser = $($configData.teams.tenantSettings.allowGuestUser)
+            Credential     = `$Creds
+        }
+"@
+
+# Close Configuration block
+$generatedConfig += @"
+    }
+}
+"@
+
+# Write the generated configuration to a file
+$generatedConfig | Out-File -FilePath $outputPath -Force
+
+# Output to console for visibility
+Write-Host "Configuration generated at $outputPath"
+Write-Host "`nGenerated Configuration:"
+Write-Host $generatedConfig
+
+# Optionally, apply the generated configuration immediately
+$applyConfig = Read-Host -Prompt "Would you like to apply the generated configuration now? (Y/N)"
+if ($applyConfig -eq 'Y') {
+    $creds = Get-Credential -Message "Please provide Microsoft 365 admin credentials"
+    . $outputPath
+    Start-DscConfiguration -Path ./MyGeneratedConfig -Wait -Force -Verbose
+}
+
+```
