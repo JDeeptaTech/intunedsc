@@ -200,3 +200,89 @@ $mergedObject = Merge-Objects -PrimaryObject $obj1 -OverrideObject $obj2
 $mergedObject
 
 ```
+``` powershell
+Add-Type -AssemblyName System.Windows.Forms
+
+# Load the CSV file
+$csvFile = "C:\path\to\yourfile.csv"
+$data = Import-Csv -Path $csvFile
+
+# Create the Form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "CSV Viewer"
+$form.Size = New-Object System.Drawing.Size(800,600)
+
+# Create a DataGridView to show CSV data
+$dataGrid = New-Object System.Windows.Forms.DataGridView
+$dataGrid.Size = New-Object System.Drawing.Size(750,400)
+$dataGrid.Location = New-Object System.Drawing.Point(20,50)
+$dataGrid.DataSource = $data
+
+# Create a Search TextBox
+$searchBox = New-Object System.Windows.Forms.TextBox
+$searchBox.Size = New-Object System.Drawing.Size(200,20)
+$searchBox.Location = New-Object System.Drawing.Point(20,20)
+$searchBox.PlaceholderText = "Search..."
+
+# Create a Filter Label and ComboBox
+$filterLabel = New-Object System.Windows.Forms.Label
+$filterLabel.Text = "Filter by Column:"
+$filterLabel.Location = New-Object System.Drawing.Point(240, 20)
+
+$filterComboBox = New-Object System.Windows.Forms.ComboBox
+$filterComboBox.Size = New-Object System.Drawing.Size(200,20)
+$filterComboBox.Location = New-Object System.Drawing.Point(340,20)
+$filterComboBox.Items.AddRange($data[0].PSObject.Properties.Name)
+
+# Function to Filter the DataGridView
+function Filter-Data {
+    $filterText = $searchBox.Text
+    $selectedColumn = $filterComboBox.SelectedItem
+
+    if ($selectedColumn -and $filterText) {
+        $filteredData = $data | Where-Object { $_.$selectedColumn -like "*$filterText*" }
+        $dataGrid.DataSource = $filteredData
+    }
+}
+
+# Search Button to trigger filter
+$searchButton = New-Object System.Windows.Forms.Button
+$searchButton.Text = "Search"
+$searchButton.Size = New-Object System.Drawing.Size(80,20)
+$searchButton.Location = New-Object System.Drawing.Point(580,20)
+$searchButton.Add_Click({ Filter-Data })
+
+# Create a Save Button
+$saveButton = New-Object System.Windows.Forms.Button
+$saveButton.Text = "Save"
+$saveButton.Size = New-Object System.Drawing.Size(100,40)
+$saveButton.Location = New-Object System.Drawing.Point(670,500)
+
+# Function to Save Selected Rows to a CSV file
+$saveButton.Add_Click({
+    $selectedRows = @()
+
+    foreach ($row in $dataGrid.SelectedRows) {
+        $selectedRows += $row.DataBoundItem
+    }
+
+    if ($selectedRows) {
+        $selectedRows | Export-Csv -Path $csvFile -NoTypeInformation
+        [System.Windows.Forms.MessageBox]::Show("Data Saved Successfully!")
+    } else {
+        [System.Windows.Forms.MessageBox]::Show("No rows selected to save.")
+    }
+})
+
+# Add Controls to the Form
+$form.Controls.Add($dataGrid)
+$form.Controls.Add($searchBox)
+$form.Controls.Add($filterLabel)
+$form.Controls.Add($filterComboBox)
+$form.Controls.Add($searchButton)
+$form.Controls.Add($saveButton)
+
+# Show the Form
+$form.ShowDialog()
+
+```
