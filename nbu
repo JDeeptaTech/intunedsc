@@ -1,0 +1,77 @@
+## nbu
+
+``` sh
+#!/bin/bash
+
+# Define variables
+MEDIA_SERVER="<media_server_name>"
+PACKAGE_PATH="<path_to_upgrade_package>"
+PACKAGE_NAME="<package_name>"
+DRY_RUN=false
+
+# Function to execute a command or simulate it if dry run is enabled
+run_command() {
+  if $DRY_RUN; then
+    echo "[DRY RUN] $1"
+  else
+    eval "$1"
+  fi
+}
+
+# Parse arguments for dry-run option
+while getopts "d" opt; do
+  case ${opt} in
+    d )
+      DRY_RUN=true
+      echo "Running in dry-run mode. No actual changes will be made."
+      ;;
+    \? )
+      echo "Usage: $0 [-d for dry run]"
+      exit 1
+      ;;
+  esac
+done
+
+# Check if the package exists
+if [ ! -f "$PACKAGE_PATH" ]; then
+  echo "Error: Package file not found at $PACKAGE_PATH"
+  exit 1
+fi
+
+# Step 1: Upload the package to VxUpdate repository
+echo "Uploading package to VxUpdate repository..."
+run_command "/usr/openv/netbackup/bin/vxupdate/bin/vxupdate add_package \"$PACKAGE_PATH\""
+
+# Step 2: Assign the package to the media server
+echo "Assigning package to media server: $MEDIA_SERVER"
+run_command "/usr/openv/netbackup/bin/vxupdate/bin/vxupdate assign_package --target \"$MEDIA_SERVER\" --package \"$PACKAGE_NAME\""
+
+# Step 3: Initiate the upgrade
+echo "Starting upgrade on media server: $MEDIA_SERVER"
+run_command "/usr/openv/netbackup/bin/vxupdate/bin/vxupdate upgrade --target \"$MEDIA_SERVER\" --package \"$PACKAGE_NAME\""
+
+# Step 4: Monitor the upgrade process (only if not dry run)
+if ! $DRY_RUN; then
+  echo "Monitoring upgrade process..."
+  while true; do
+    STATUS=$(/usr/openv/netbackup/bin/vxupdate/bin/vxupdate status --target "$MEDIA_SERVER" | grep "Status")
+    echo "Upgrade Status: $STATUS"
+
+    # Check if the upgrade is complete
+    if echo "$STATUS" | grep -q "Completed"; then
+      echo "Upgrade completed successfully on $MEDIA_SERVER."
+      break
+    elif echo "$STATUS" | grep -q "Failed"; then
+      echo "Error: Upgrade failed on $MEDIA_SERVER."
+      exit 1
+    else
+      # Wait a bit before checking again
+      sleep 10
+    fi
+  done
+else
+  echo "[DRY RUN] Skipping upgrade monitoring."
+fi
+
+echo "Upgrade script completed."
+```
