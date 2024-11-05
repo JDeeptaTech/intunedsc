@@ -75,3 +75,69 @@ def testRemoteShellExecution() {
 testRemoteShellExecution()
 
 ```
+
+``` sh
+#!/bin/bash
+
+# Define the location for profiles and default configuration values
+PROFILES_DIR="/path/to/nbu/profiles"
+NBU_VERSION="9.1" # Set your NBU target version here
+UPGRADE_DATE=$(date +"%Y-%m-%d")
+CURRENT_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+
+# Function to create an upgrade profile
+create_profile() {
+    local server_name="$1"
+    local scheduled_time="$2"
+    local profile_path="$PROFILES_DIR/$server_name"
+
+    # Check if the profile already exists
+    if [ -d "$profile_path" ]; then
+        echo "Profile for server $server_name already exists. Skipping..."
+        return 0
+    fi
+
+    # Check if the scheduled time is in the future
+    if [[ "$CURRENT_DATE" > "$scheduled_time" ]]; then
+        echo "Scheduled time for $server_name has already passed. Skipping..."
+        return 0
+    fi
+
+    echo "Creating upgrade profile for server: $server_name"
+
+    # Create a directory for the server profile
+    mkdir -p "$profile_path" || { echo "Failed to create profile directory for $server_name"; return 1; }
+
+    # Create a profile configuration file
+    cat <<EOF > "$profile_path/upgrade_profile.conf"
+# NetBackup Media Server Upgrade Profile
+server_name=$server_name
+nbu_version=$NBU_VERSION
+upgrade_date=$UPGRADE_DATE
+scheduled_time=$scheduled_time
+EOF
+
+    echo "Upgrade profile created at $profile_path/upgrade_profile.conf"
+}
+
+# Main script
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 server1 scheduled_time1 [server2 scheduled_time2 ...]"
+    echo "Scheduled time format: YYYY-MM-DD HH:MM:SS"
+    exit 1
+fi
+
+# Ensure the profiles directory exists
+mkdir -p "$PROFILES_DIR" || { echo "Failed to create profiles directory at $PROFILES_DIR"; exit 1; }
+
+# Loop through each server and its scheduled time
+while [ "$#" -gt 0 ]; do
+    server="$1"
+    scheduled_time="$2"
+    create_profile "$server" "$scheduled_time"
+    shift 2
+done
+
+echo "Profile creation process completed."
+
+```
