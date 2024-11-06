@@ -93,3 +93,36 @@ def textBoxHtml = generateTextBoxHtml('medium')
 println textBoxHtml
 
 ```
+
+Authentication and Authorization:
+
+login.microsoftonline.com
+login.windows.net
+secure.aadcdn.microsoftonline-p.com
+Microsoft Graph API:
+
+graph.microsoft.com
+graph.windows.net
+Microsoft 365 Services:
+
+manage.office.com
+outlook.office365.com
+ps.outlook.com
+protection.office.com
+compliance.microsoft.com
+admin.microsoft.com
+device.login.microsoftonline.com
+substrate.office.com
+Azure Management (if applicable):
+
+management.azure.com
+Additional Required Services:
+
+partner.outlook.cn (for operations in China)
+officeconfig.msocdn.com (for Office configuration)
+api.diagnostics.office.com (for diagnostics and telemetry)
+Content Delivery Networks (CDNs) and Miscellaneous:
+
+*.msocdn.com
+*.office365.com
+*.office.com
