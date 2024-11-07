@@ -1,22 +1,83 @@
 ``` sh
-  #!/bin/bash
+# ev_precheck.ps1
 
-# Variables
-INSTALLER_PATH="/path/to/Veritas_Enterprise_Vault_Installer.exe"
-RESPONSE_FILE="/path/to/setup.ini"
-LOG_FILE="/var/log/ev_upgrade.log"
+Write-Host "Starting Pre-Upgrade Checks..."
 
-# Run the silent upgrade
-"$INSTALLER_PATH" /s /f1"$RESPONSE_FILE" /f2"$LOG_FILE"
+# Check if the user has administrative privileges
+If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Error "You must run this script as an administrator."
+    Exit 1
+}
 
-# Check if the installation was successful
-if grep -q "Installation Complete" "$LOG_FILE"; then
-    echo "Enterprise Vault upgrade completed successfully."
-    exit 0
-else
-    echo "Enterprise Vault upgrade failed. Check the log at $LOG_FILE for details."
-    exit 1
-fi
+# Check available disk space (e.g., require at least 5GB free on C:)
+$freeSpace = (Get-WMIObject Win32_LogicalDisk -Filter "DeviceID='C:'").FreeSpace
+If ($freeSpace -lt 5GB) {
+    Write-Error "Not enough free disk space on C: drive."
+    Exit 1
+}
+
+# Check if Enterprise Vault services are running
+$evServices = Get-Service -DisplayName "Enterprise Vault*"
+$runningServices = $evServices | Where-Object {$_.Status -eq 'Running'}
+
+If ($runningServices) {
+    Write-Host "Stopping Enterprise Vault services..."
+    $runningServices | Stop-Service -Force
+}
+
+Write-Host "Pre-Upgrade Checks Completed Successfully."
+Exit 0
+
+# ev_upgrade.ps1
+
+Write-Host "Starting Enterprise Vault Upgrade..."
+
+$installerPath = "C:\Temp\Veritas_Enterprise_Vault_Installer.exe"
+$responseFile = "C:\Temp\setup.ini"
+$logFile = "C:\Temp\ev_upgrade.log"
+
+# Execute the silent upgrade
+Start-Process -FilePath $installerPath -ArgumentList "/s /f1`"$responseFile`" /f2`"$logFile`"" -Wait -PassThru
+
+# Check the installation log for success
+$logContent = Get-Content $logFile
+If ($logContent -match "Installation Complete") {
+    Write-Host "Enterprise Vault upgrade completed successfully."
+    Exit 0
+} Else {
+    Write-Error "Enterprise Vault upgrade failed. Check the log at $logFile for details."
+    Exit 1
+}
+
+# ev_postcheck.ps1
+
+Write-Host "Starting Post-Upgrade Checks..."
+
+# Verify Enterprise Vault version
+$evVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\KVS\Enterprise Vault").FileVersion
+Write-Host "Enterprise Vault Version: $evVersion"
+
+# Check if Enterprise Vault services are running
+$evServices = Get-Service -DisplayName "Enterprise Vault*"
+$stoppedServices = $evServices | Where-Object {$_.Status -ne 'Running'}
+
+If ($stoppedServices) {
+    Write-Host "Starting Enterprise Vault services..."
+    $stoppedServices | Start-Service
+}
+
+# Verify services are running
+$evServices = Get-Service -DisplayName "Enterprise Vault*"
+$runningServices = $evServices | Where-Object {$_.Status -eq 'Running'}
+
+If ($runningServices.Count -eq $evServices.Count) {
+    Write-Host "All Enterprise Vault services are running."
+    Exit 0
+} Else {
+    Write-Error "Some Enterprise Vault services failed to start."
+    Exit 1
+}
+
 
 ```
 
