@@ -1,4 +1,4 @@
-``` sh
+``` powershell
 # ev_precheck.ps1
 
 Write-Host "Starting Pre-Upgrade Checks..."
