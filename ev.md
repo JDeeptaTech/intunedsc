@@ -1,3 +1,139 @@
+``` powershell
+# ev_precheck.ps1
+
+<# 
+.SYNOPSIS
+    Pre-Upgrade Checks for Veritas Enterprise Vault Upgrade.
+
+.DESCRIPTION
+    This script performs pre-upgrade checks, including verifying administrative privileges,
+    checking disk space, backing up SQL databases, and stopping EV services.
+
+.PARAMETER SqlServer
+    The name or IP address of the SQL Server hosting the EV databases.
+
+.PARAMETER SqlUser
+    The SQL login user with backup privileges.
+
+.PARAMETER SqlPassword
+    The password for the SQL login user.
+
+.PARAMETER BackupDir
+    The directory where SQL backups will be stored.
+
+.PARAMETER EvServices
+    An array of Enterprise Vault service display names to be stopped.
+
+.EXAMPLE
+    .\ev_precheck.ps1 -SqlServer "sqlserver.example.com" -SqlUser "sa" -SqlPassword "P@ssw0rd" -BackupDir "C:\EVBackups"
+#>
+
+param (
+    [Parameter(Mandatory=$true)]
+    [string]$SqlServer,
+
+    [Parameter(Mandatory=$true)]
+    [string]$SqlUser,
+
+    [Parameter(Mandatory=$true)]
+    [string]$SqlPassword,
+
+    [Parameter(Mandatory=$true)]
+    [string]$BackupDir,
+
+    [Parameter(Mandatory=$false)]
+    [string[]]$EvServices = @("Enterprise Vault Admin Service", "Enterprise Vault Directory Service", "Enterprise Vault Storage Service")
+)
+
+Write-Host "Starting Pre-Upgrade Checks..."
+
+# Function to check administrative privileges
+function Check-AdminPrivileges {
+    Write-Host "Checking administrative privileges..."
+    If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+        Write-Error "You must run this script as an administrator."
+        Exit 1
+    }
+}
+
+# Function to check free disk space
+function Check-FreeDiskSpace {
+    Write-Host "Checking free disk space on C: drive..."
+    $freeSpace = (Get-WMIObject Win32_LogicalDisk -Filter "DeviceID='C:'").FreeSpace
+    If ($freeSpace -lt 5GB) {
+        Write-Error "Not enough free disk space on C: drive."
+        Exit 1
+    }
+}
+
+# Function to backup SQL databases
+function Backup-SqlDatabases {
+    Write-Host "Backing up SQL databases..."
+
+    # List of databases to backup
+    $databases = @("EVVaultStore", "EVDirectory", "EVMonitoring") # Replace with your actual database names
+
+    # Ensure backup directory exists
+    If (-Not (Test-Path -Path $BackupDir)) {
+        Write-Host "Creating backup directory at $BackupDir"
+        New-Item -Path $BackupDir -ItemType Directory | Out-Null
+    }
+
+    # Backup each database
+    foreach ($db in $databases) {
+        Write-Host "Backing up database: $db"
+
+        $backupFile = Join-Path -Path $BackupDir -ChildPath "$db.bak"
+
+        $backupQuery = "BACKUP DATABASE [$db] TO DISK = N'$backupFile' WITH INIT, STATS = 10"
+
+        try {
+            Invoke-Sqlcmd -ServerInstance $SqlServer -Username $SqlUser -Password $SqlPassword -Query $backupQuery -QueryTimeout 0
+            Write-Host "Database $db backed up successfully to $backupFile"
+        } catch {
+            Write-Error "Failed to backup database $db. Error: $_"
+            Exit 1
+        }
+    }
+}
+
+# Function to stop Enterprise Vault services
+function Stop-EvServices {
+    Write-Host "Stopping Enterprise Vault services if they are running..."
+
+    foreach ($serviceName in $EvServices) {
+        $service = Get-Service -DisplayName $serviceName -ErrorAction SilentlyContinue
+        if ($service -and $service.Status -eq 'Running') {
+            Write-Host "Stopping service: $serviceName"
+            try {
+                Stop-Service -Name $service.Name -Force -ErrorAction Stop
+                Write-Host "Service $serviceName stopped successfully."
+            } catch {
+                Write-Error "Failed to stop service $serviceName. Error: $_"
+                Exit 1
+            }
+        } else {
+            Write-Host "Service $serviceName is not running."
+        }
+    }
+}
+
+# Main Execution
+try {
+    Check-AdminPrivileges
+    Check-FreeDiskSpace
+    Backup-SqlDatabases
+    Stop-EvServices
+
+    Write-Host "Pre-Upgrade Checks Completed Successfully."
+    Exit 0
+} catch {
+    Write-Error "Pre-Upgrade Checks Failed. Error: $_"
+    Exit 1
+}
+
+```
+
 ``` sh
 #!/bin/bash
 
