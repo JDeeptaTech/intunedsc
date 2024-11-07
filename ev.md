@@ -1,3 +1,80 @@
+``` sh
+#!/bin/bash
+
+echo "Starting Pre-Upgrade Checks..."
+
+# Check if the script is run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "You must run this script as root."
+  exit 1
+fi
+
+# Check available disk space (e.g., require at least 5GB free on /)
+free_space=$(df / | tail -1 | awk '{print $4}')
+if [ "$free_space" -lt 5242880 ]; then
+  echo "Not enough free disk space on the root filesystem."
+  exit 1
+fi
+
+# Check if Enterprise Vault services are running
+ev_services=$(ps aux | grep '[E]nterpriseVault')
+if [ -n "$ev_services" ]; then
+  echo "Stopping Enterprise Vault services..."
+  # Replace with actual commands to stop services
+  systemctl stop enterprise_vault.service
+fi
+
+echo "Pre-Upgrade Checks Completed Successfully."
+exit 0
+===================
+
+#!/bin/bash
+
+echo "Starting Enterprise Vault Upgrade..."
+
+INSTALLER_PATH="/tmp/Veritas_Enterprise_Vault_Installer.bin"
+RESPONSE_FILE="/tmp/setup.ini"
+LOG_FILE="/tmp/ev_upgrade.log"
+
+# Execute the silent upgrade
+"$INSTALLER_PATH" -silent -responseFile "$RESPONSE_FILE" > "$LOG_FILE" 2>&1
+
+# Check the installation log for success
+if grep -q "Installation Complete" "$LOG_FILE"; then
+  echo "Enterprise Vault upgrade completed successfully."
+  exit 0
+else
+  echo "Enterprise Vault upgrade failed. Check the log at $LOG_FILE for details."
+  exit 1
+fi
+=======================
+#!/bin/bash
+
+echo "Starting Post-Upgrade Checks..."
+
+# Verify Enterprise Vault version
+ev_version=$(cat /opt/enterprise_vault/version.txt)
+echo "Enterprise Vault Version: $ev_version"
+
+# Start Enterprise Vault services
+echo "Starting Enterprise Vault services..."
+# Replace with actual commands to start services
+systemctl start enterprise_vault.service
+
+# Verify services are running
+ev_services=$(ps aux | grep '[E]nterpriseVault')
+if [ -n "$ev_services" ]; then
+  echo "All Enterprise Vault services are running."
+  exit 0
+else
+  echo "Some Enterprise Vault services failed to start."
+  exit 1
+fi
+
+```
+
+
+
 ``` powershell
 # ev_precheck.ps1
 
