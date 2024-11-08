@@ -1,3 +1,51 @@
+``` grrovy
+plugins {
+    id 'groovy'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.codehaus.groovy:groovy-all:3.0.7'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jenkins-ci.main:jenkins-core:2.249.2'
+    testImplementation 'org.jenkins-ci.plugins:workflow-cps:2.89'
+    testImplementation 'org.jenkins-ci.plugins:workflow-step-api:2.22'
+    testImplementation 'com.lesfurets:jenkins-pipeline-unit:1.9'
+}
+
+----------------------------
+def call(String name = 'World') {
+    echo "Hello, ${name}!"
+}
+----------------------------
+
+import com.lesfurets.jenkins.unit.BasePipelineTest
+import org.junit.Before
+import org.junit.Test
+
+class MyPipelineStepTest extends BasePipelineTest {
+
+    @Before
+    void setUp() {
+        super.setUp()  // This initializes the testing environment
+    }
+
+    @Test
+    void testCallStep() {
+        // Load and execute the pipeline step
+        def script = loadScript("vars/myPipelineStep.groovy")
+        
+        script.call("Jenkins")  // Call the function with an argument
+        assertJobStatusSuccess()  // Verify the job status
+        assertEquals("Hello, Jenkins!", helper.callStack.findAll { call -> call.methodName == 'echo' }[0].args[0])
+    }
+}
+
+````
+
 ``` groovy
 import groovy.json.JsonOutput
 import java.net.HttpURLConnection
