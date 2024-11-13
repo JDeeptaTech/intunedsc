@@ -295,47 +295,83 @@ If ($runningServices.Count -eq $evServices.Count) {
 ```
 
 ``` yaml
-  ---
-- name: Upgrade Veritas Enterprise Vault
+---
+- name: Validate Semantic Versions and Upgrade Enterprise Vault
   hosts: ev_servers
-  become: yes
+  gather_facts: no
   vars:
-    installer_source: "/network/share/Veritas_Enterprise_Vault_Installer.exe"
-    response_file_source: "/network/share/setup.ini"
-    installer_dest: "/tmp/Veritas_Enterprise_Vault_Installer.exe"
-    response_file_dest: "/tmp/setup.ini"
-
+    requested_ev_version: '14.2.2.0'  # Replace with your desired version
+    semver_regex: '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-([\\da-zA-Z-]+(?:\\.[\\da-zA-Z-]+)*))?(?:\\+([\\da-zA-Z-]+(?:\\.[\\da-zA-Z-]+)*))?$'
   tasks:
-    - name: Copy the installer to the target server
-      copy:
-        src: "{{ installer_source }}"
-        dest: "{{ installer_dest }}"
-        mode: '0755'
 
-    - name: Copy the response file to the target server
-      copy:
-        src: "{{ response_file_source }}"
-        dest: "{{ response_file_dest }}"
-        mode: '0644'
+    - name: Get Enterprise Vault version from registry
+      win_regedit:
+        path: 'HKLM:\SOFTWARE\Wow6432Node\KVS\Enterprise Vault'
+        name: 'FileVersion'
+        datatype: string
+        state: read
+      register: ev_version_info
 
-    - name: Copy the upgrade script to the target server
-      copy:
-        src: "ev_upgrade.sh"
-        dest: "/tmp/ev_upgrade.sh"
-        mode: '0755'
+    - name: Set current EV version fact
+      set_fact:
+        current_ev_version: "{{ ev_version_info.value }}"
+      when: ev_version_info.value is defined
 
-    - name: Execute the upgrade script
-      shell: "/tmp/ev_upgrade.sh"
-      args:
-        executable: /bin/bash
+    - name: Fail if current EV version could not be retrieved
+      fail:
+        msg: "Could not retrieve the current Enterprise Vault version."
+      when: current_ev_version is not defined
 
-    - name: Cleanup temporary files
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - "{{ installer_dest }}"
-        - "{{ response_file_dest }}"
-        - "/tmp/ev_upgrade.sh"
+    - name: Validate that current EV version is a valid semantic version
+      set_fact:
+        is_current_version_valid: "{{ current_ev_version is match(semver_regex) }}"
+
+    - name: Validate that requested EV version is a valid semantic version
+      set_fact:
+        is_requested_version_valid: "{{ requested_ev_version is match(semver_regex) }}"
+
+    - name: Fail if current EV version is not a valid semantic version
+      fail:
+        msg: "Current EV version '{{ current_ev_version }}' is not a valid semantic version."
+      when: not is_current_version_valid
+
+    - name: Fail if requested EV version is not a valid semantic version
+      fail:
+        msg: "Requested EV version '{{ requested_ev_version }}' is not a valid semantic version."
+      when: not is_requested_version_valid
+
+    - name: Debug current and requested EV versions
+      debug:
+        msg: "Current EV Version: {{ current_ev_version }}, Requested EV Version: {{ requested_ev_version }}"
+
+    - name: Check if requested version is greater than current version
+      set_fact:
+        upgrade_required: "{{ current_ev_version is version(requested_ev_version, '<') }}"
+
+    - name: Debug version comparison result
+      debug:
+        msg: "Upgrade Required: {{ upgrade_required }}"
+
+    - name: Perform EV upgrade if required
+      block:
+
+        - name: Pre-upgrade tasks
+          debug:
+            msg: "Performing pre-upgrade tasks..."
+
+        - name: Run EV upgrade script
+          debug:
+            msg: "Running EV upgrade script..."
+
+        - name: Post-upgrade tasks
+          debug:
+            msg: "Performing post-upgrade tasks..."
+
+      when: upgrade_required
+
+    - name: Skip upgrade as current version is up-to-date
+      debug:
+        msg: "Enterprise Vault is up-to-date. No upgrade required."
+      when: not upgrade_required
 
 ```
