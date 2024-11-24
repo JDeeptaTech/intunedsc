@@ -1,3 +1,32 @@
+``` yaml
+- name: Process server backup list
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Define server backup list
+      set_fact:
+        ev_server_backup_list:
+          - "2024-09-04T19:40:22"
+          - "2024-09-05T19:39:55"
+          - "2024-09-09T11:07:30"
+          - "2024-11-23T21:14:00"  # Example latest date
+    
+    - name: Sort backup dates and get the latest
+      set_fact:
+        latest_backup_date: "{{ ev_server_backup_list | map('regex_replace', '(T|\\D)', ' ') | map('trim') | map('strptime', '%Y-%m-%d %H:%M:%S') | max }}"
+    
+    - name: Check if the latest backup is within the last 24 hours
+      set_fact:
+        backup_within_24h: "{{ (ansible_date_time.iso8601 | to_datetime('%Y-%m-%dT%H:%M:%SZ') - latest_backup_date).total_seconds() <= 86400 }}"
+    
+    - name: Debug the result
+      debug:
+        msg: >
+          Latest backup date: {{ latest_backup_date.strftime('%Y-%m-%d %H:%M:%S') }}
+          Is the latest backup within the last 24 hours? {{ backup_within_24h }}
+
+```
+
 ``` powershell
 # ev_precheck.ps1
 
