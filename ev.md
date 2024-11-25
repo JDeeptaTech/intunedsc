@@ -10,20 +10,27 @@
           - "2024-09-05T19:39:55"
           - "2024-09-09T11:07:30"
           - "2024-11-23T21:14:00"  # Example latest date
-    
-    - name: Sort backup dates and get the latest
+
+    - name: Convert backup dates to datetime objects
       set_fact:
-        latest_backup_date: "{{ ev_server_backup_list | map('regex_replace', '(T|\\D)', ' ') | map('trim') | map('strptime', '%Y-%m-%d %H:%M:%S') | max }}"
-    
+        backup_dates: >-
+          {{ ev_server_backup_list | map('strptime', '%Y-%m-%dT%H:%M:%S') | list }}
+
+    - name: Find the latest backup date
+      set_fact:
+        latest_backup_date: "{{ backup_dates | max }}"
+
     - name: Check if the latest backup is within the last 24 hours
       set_fact:
-        backup_within_24h: "{{ (ansible_date_time.iso8601 | to_datetime('%Y-%m-%dT%H:%M:%SZ') - latest_backup_date).total_seconds() <= 86400 }}"
-    
+        backup_within_24h: >-
+          {{ (ansible_date_time.iso8601 | to_datetime('%Y-%m-%dT%H:%M:%SZ') - latest_backup_date).total_seconds() <= 86400 }}
+
     - name: Debug the result
       debug:
         msg: >
           Latest backup date: {{ latest_backup_date.strftime('%Y-%m-%d %H:%M:%S') }}
           Is the latest backup within the last 24 hours? {{ backup_within_24h }}
+
 
 ```
 
