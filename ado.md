@@ -1,3 +1,38 @@
+```yaml
+- task: AzurePowerShell@5
+  inputs:
+    azureSubscription: 'YourServiceConnectionName'
+    ScriptType: 'InlineScript'
+    Inline: |
+      # Variables
+      $resourceGroupName = "YourResourceGroupName"
+      $virtualNetworkName = "YourVNetName"
+      $subnetName = "YourSubnetName"
+      $subnetPrefix = "10.0.1.0/24"
+
+      # Get the virtual network
+      $virtualNetwork = Get-AzVirtualNetwork -Name $virtualNetworkName -ResourceGroupName $resourceGroupName
+
+      if (-not $virtualNetwork) {
+          Write-Error "Virtual network '$virtualNetworkName' not found in resource group '$resourceGroupName'."
+          exit 1
+      }
+
+      # Check if the subnet exists
+      $subnet = $virtualNetwork.Subnets | Where-Object { $_.Name -eq $subnetName }
+
+      if (-not $subnet) {
+          # Subnet does not exist, create it
+          $virtualNetwork | Add-AzVirtualNetworkSubnetConfig -Name $subnetName -AddressPrefix $subnetPrefix | Set-AzVirtualNetwork
+          Write-Host "Subnet '$subnetName' has been created in virtual network '$virtualNetworkName'."
+      } else {
+          Write-Host "Subnet '$subnetName' already exists in virtual network '$virtualNetworkName'."
+      }
+    azurePowerShellVersion: 'LatestVersion'  # Use the latest version of Azure PowerShell
+
+
+```
+
 ```yml
 # Azure DevOps Pipeline YAML
 
