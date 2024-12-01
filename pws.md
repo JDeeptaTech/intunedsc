@@ -1,4 +1,31 @@
 ``` powershell
+# Define the ISO file path
+$IsoPath = "C:\Path\To\File.iso"
+
+# Check if the file exists
+if (-not (Test-Path -Path $IsoPath)) {
+    Write-Host "The file does not exist: $IsoPath" -ForegroundColor Red
+    return
+}
+
+# Ensure the Virtual Disk Service is running
+if ((Get-Service -Name "vds").Status -ne "Running") {
+    Write-Host "Starting the Virtual Disk Service..."
+    Start-Service -Name "vds"
+}
+
+# Attempt to get information about the disk image
+try {
+    $DiskImage = Get-DiskImage -ImagePath $IsoPath
+    Write-Host "Disk Image Information:" -ForegroundColor Green
+    $DiskImage
+} catch {
+    Write-Host "Failed to retrieve disk image: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+```
+
+``` powershell
 # Define the root folder containing subfolders with partial configurations
 $RootFolder = "C:\Path\To\Your\Configs"
 
