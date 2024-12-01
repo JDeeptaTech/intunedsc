@@ -1,3 +1,46 @@
+```powershell
+# Specify the directory to search for .zip files
+$SourceDirectory = "C:\Path\To\Search"
+
+# Specify the destination folder where the zip files will be extracted
+$DestinationDirectory = "C:\Path\To\Extract"
+
+# Ensure the destination directory exists
+if (-not (Test-Path -Path $DestinationDirectory)) {
+    New-Item -ItemType Directory -Path $DestinationDirectory -Force
+}
+
+# Get all .zip files in the source directory and its subdirectories
+$ZipFiles = Get-ChildItem -Path $SourceDirectory -Filter "*.zip" -File -Recurse
+
+if ($ZipFiles.Count -eq 0) {
+    Write-Host "No .zip files found in the directory: $SourceDirectory"
+    return
+}
+
+# Process each .zip file
+foreach ($ZipFile in $ZipFiles) {
+    Write-Host "Extracting $($ZipFile.FullName)..."
+
+    # Define the extraction path (subfolder for each .zip file)
+    $ExtractPath = Join-Path -Path $DestinationDirectory -ChildPath $ZipFile.BaseName
+
+    # Ensure the extraction path exists
+    if (-not (Test-Path -Path $ExtractPath)) {
+        New-Item -ItemType Directory -Path $ExtractPath -Force
+    }
+
+    # Extract the .zip file using Expand-Archive
+    try {
+        Expand-Archive -Path $ZipFile.FullName -DestinationPath $ExtractPath -Force
+        Write-Host "Successfully extracted: $($ZipFile.Name) to $ExtractPath"
+    } catch {
+        Write-Host "Failed to extract $($ZipFile.FullName): $_" -ForegroundColor Red
+    }
+}
+
+```
+
 ```ps
 # Import both .psd1 files
 $file1 = Import-PowerShellDataFile -Path "File1.psd1"
