@@ -1,0 +1,19 @@
+- name: Collect 'ansible_date_time' only facts
+  setup:
+    gather_subset:
+      - date_time
+  no_log: false
+
+- name: Check if the latest backup is within the last 24 hours for {{ host_item.name }}
+  set_fact:
+    days_difference: >-
+      {{
+        (ansible_date_time.iso8601 | to_datetime('%Y-%m-%dT%H:%M:%S%z') -
+        (host_item.last_successful_backup | to_datetime('%Y-%m-%dT%H:%M:%S%z'))).days
+      }}
+
+- name: Debug the result for {{ host_item.name }}
+  debug:
+    msg: >-
+      Latest backup was taken on {{ host_item.last_successful_backup }}, i.e. {{ days_difference }} days ago.
+      It {{ 'is' if (days_difference | int) <= 30 else 'is not' }} within the last 30 days.
