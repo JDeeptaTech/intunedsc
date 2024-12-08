@@ -81,6 +81,28 @@ pool:
 
 steps:
 - task: AzurePowerShell@5
+  displayName: 'Create Resource Group if not exists'
+  inputs:
+    azureSubscription: 'YourServiceConnectionName' # Replace with your Azure service connection
+    ScriptType: 'InlineScript'
+    Inline: |
+      $resourceGroupName = "YourResourceGroupName"
+      $location = "EastUS"
+
+      # Check if the resource group exists
+      $rg = Get-AzResourceGroup -Name $resourceGroupName -ErrorAction SilentlyContinue
+
+      if (-not $rg) {
+          # Resource group doesn't exist, create it
+          New-AzResourceGroup -Name $resourceGroupName -Location $location
+          Write-Host "Resource group '$resourceGroupName' has been created in '$location'."
+      } else {
+          Write-Host "Resource group '$resourceGroupName' already exists."
+      }
+    azurePowerShellVersion: 'LatestVersion'
+    pwsh: true
+
+- task: AzurePowerShell@5
   displayName: 'Create Application Insights if not exists'
   inputs:
     azureSubscription: 'YourServiceConnectionName' # Replace with your Azure service connection
