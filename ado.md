@@ -72,5 +72,44 @@ steps:
       else
         echo "Subnet '$SUBNET_NAME' already exists. No action needed."
       fi
+```
+``` yaml
+trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: AzurePowerShell@5
+  displayName: 'Create Application Insights if not exists'
+  inputs:
+    azureSubscription: 'YourServiceConnectionName' # Replace with your Azure service connection
+    ScriptType: 'InlineScript'
+    Inline: |
+      $resourceGroupName = "YourResourceGroupName"
+      $appInsightsName = "YourAppInsightsName"
+      $location = "EastUS" # Choose appropriate location
+      $appKind = "web"
+      $appType = "web"
+
+      # Check if the resource group exists
+      $rg = Get-AzResourceGroup -Name $resourceGroupName -ErrorAction SilentlyContinue
+      if (-not $rg) {
+          Write-Error "Resource group '$resourceGroupName' does not exist."
+          exit 1
+      }
+
+      # Check if the Application Insights instance exists
+      $appInsights = Get-AzApplicationInsights -Name $appInsightsName -ResourceGroupName $resourceGroupName -ErrorAction SilentlyContinue
+
+      if (-not $appInsights) {
+          # Create the Application Insights instance
+          New-AzApplicationInsights -ResourceGroupName $resourceGroupName -Name $appInsightsName -Location $location -Kind $appKind -ApplicationType $appType
+          Write-Host "Application Insights '$appInsightsName' created in resource group '$resourceGroupName'."
+      } else {
+          Write-Host "Application Insights '$appInsightsName' already exists in resource group '$resourceGroupName'."
+      }
+    azurePowerShellVersion: 'LatestVersion'
+    pwsh: true
 
 ```
