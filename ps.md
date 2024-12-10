@@ -76,3 +76,61 @@ $($mergedData | Out-String)
 "@ | Set-Content -Path "MergedFile.psd1"
 
 ```
+``` powershell
+function Example-Script {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string[]]$InputData
+    )
+
+    # Global variable to store exceptions
+    $global:ExceptionLog = @()
+
+    begin {
+        Write-Host "Begin block: Initialization" -ForegroundColor Green
+        # Initialize any resources or variables
+        $ProcessedItems = @()
+    }
+
+    process {
+        Write-Host "Process block: Processing each item" -ForegroundColor Cyan
+        foreach ($item in $InputData) {
+            try {
+                if ($item -eq "error") {
+                    throw "Simulated error for input: $item"
+                }
+                # Simulate processing
+                Write-Host "Processing item: $item"
+                $ProcessedItems += $item
+            }
+            catch {
+                # Log exceptions
+                $global:ExceptionLog += $_
+                Write-Host "Caught exception for item: $item. Error: $_" -ForegroundColor Red
+            }
+        }
+    }
+
+    end {
+        Write-Host "End block: Finalizing script execution" -ForegroundColor Yellow
+
+        # Summarize processed items
+        Write-Host "Processed Items: $($ProcessedItems -join ', ')"
+
+        # Log any exceptions captured
+        if ($global:ExceptionLog.Count -gt 0) {
+            Write-Host "Exceptions captured during execution:" -ForegroundColor Red
+            foreach ($exception in $global:ExceptionLog) {
+                Write-Host $exception
+            }
+        } else {
+            Write-Host "No exceptions encountered." -ForegroundColor Green
+        }
+    }
+}
+
+# Example usage
+"item1", "item2", "error", "item3" | Example-Script
+
+```
