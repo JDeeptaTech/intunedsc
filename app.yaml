@@ -17,3 +17,23 @@
     msg: >-
       Latest backup was taken on {{ host_item.last_successful_backup }}, i.e. {{ days_difference }} days ago.
       It {{ 'is' if (days_difference | int) <= 30 else 'is not' }} within the last 30 days.
+
+
+
+---
+- name: Fetch and filter Windows services
+  hosts: windows
+  gather_facts: no
+  tasks:
+    - name: Get all services matching "Enterprise Vault"
+      win_service_info:
+        name: '*Enterprise Vault*'
+      register: services_info
+
+    - name: Filter running services
+      set_fact:
+        running_services: "{{ services_info.services | selectattr('state', 'equalto', 'running') | map(attribute='name') | list }}"
+
+    - name: Output running services as JSON
+      debug:
+        msg: "{{ running_services | to_nice_json }}"
