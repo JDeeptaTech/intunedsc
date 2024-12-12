@@ -135,7 +135,7 @@ steps:
     pwsh: true
 
 ```
-''' yml
+``` yaml
 ---
 - name: Execute Enterprise Vault Upgrade
   hosts: "{{ host_item.name }}"
@@ -185,4 +185,4 @@ steps:
     - name: Display Successful Upgrade Message
       debug:
         msg: "Enterprise Vault upgrade completed successfully with components: {{ initialized_components }}"
-'''
+```
