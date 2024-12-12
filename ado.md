@@ -135,3 +135,54 @@ steps:
     pwsh: true
 
 ```
+''' yml
+---
+- name: Execute Enterprise Vault Upgrade
+  hosts: "{{ host_item.name }}"
+  gather_facts: no
+  tasks:
+    - name: Set Binary and Log Paths
+      set_fact:
+        binary_files: "{{ install_binary_location }}/Veritas Enterprise Vault/Server/x64"
+        log_file: "C:\\Temp\\ev_upgrade.log"
+
+    - name: Find Installer Path
+      win_find:
+        paths: "{{ binary_files }}"
+        recurse: no
+        patterns: "*.exe"
+      register: installer_files
+
+    - name: Check if Installer Exists
+      fail:
+        msg: "No installer found in {{ binary_files }}"
+      when: installer_files.files | length == 0
+
+    - name: Run Installer
+      win_shell: |
+        Start-Process -FilePath "{{ installer_files.files[0].path }}" -ArgumentList "/s /clone_wait /l*v {{ log_file }}" -Wait
+      args:
+        executable: cmd
+      register: installer_execution
+      when: installer_files.files | length > 0
+
+    - name: Read Log File
+      win_shell: |
+        Get-Content "{{ log_file }}"
+      register: log_content
+      changed_when: false
+
+    - name: Parse Log Content for Installed Components
+      set_fact:
+        initialized_components: >-
+          {{ log_content.stdout_lines | select('match', 'Installation completed successfully') | map('regex_replace', '\\s*Product:\\s*', '') | unique }}
+
+    - name: Check Installation Status
+      fail:
+        msg: "Enterprise Vault upgrade failed. Check the log at {{ log_file }} for details."
+      when: initialized_components | length == 0
+
+    - name: Display Successful Upgrade Message
+      debug:
+        msg: "Enterprise Vault upgrade completed successfully with components: {{ initialized_components }}"
+'''
