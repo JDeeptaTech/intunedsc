@@ -1,4 +1,24 @@
 ```powershell
+# Define the time window: last one minute
+$StartTime = (Get-Date).AddMinutes(-1)
+
+# Specify the event log name (e.g., System, Application, Security)
+$LogName = "System" # Change this to Application, Security, etc., as needed
+
+# Query the event log for events in the last one minute
+$Events = Get-WinEvent -LogName $LogName -FilterXPath "*[System[TimeCreated[timediff(@SystemTime) <= 60000]]]" -ErrorAction SilentlyContinue
+
+# Display the results
+if ($Events) {
+    Write-Output "Events found in the $LogName log within the last 1 minute:"
+    $Events | Select-Object TimeCreated, Id, ProviderName, Message
+} else {
+    Write-Output "No events found in the $LogName log within the last 1 minute."
+}
+
+```
+
+```powershell
 # Specify the directory to search for .zip files
 $SourceDirectory = "C:\Path\To\Search"
 
