@@ -141,3 +141,66 @@ done
 echo "Profile creation process completed."
 
 ```
+
+```groovy
+import groovy.json.JsonSlurper
+import com.atlassian.jira.component.ComponentAccessor
+
+// Load JSON file
+def scriptDirectory = new File('/path/to/script-library') // Adjust the path accordingly
+def jsonFile = new File(scriptDirectory, 'IssueTemplate.json')
+
+if (!jsonFile.exists()) {
+    throw new FileNotFoundException("JSON template file not found at: ${jsonFile.absolutePath}")
+}
+
+// Parse JSON
+def jsonSlurper = new JsonSlurper()
+def template = jsonSlurper.parse(jsonFile)
+
+// Example usage
+def projectKey = template.projectKey
+def issueType = template.issueType
+def summary = template.summaryTemplate.replace("{timestamp}", new Date().format("yyyy-MM-dd HH:mm:ss"))
+def description = template.descriptionTemplate
+
+def customFields = template.customFields
+
+// Create an issue based on the template
+def issueService = ComponentAccessor.getIssueService()
+def user = ComponentAccessor.jiraAuthenticationContext.loggedInUser
+
+def createValidationResult = issueService.validateCreate(user, [
+    projectKey: projectKey,
+    issueType: issueType,
+    summary: summary,
+    description: description,
+    customFieldValues: customFields
+])
+
+if (createValidationResult.isValid()) {
+    def createResult = issueService.create(user, createValidationResult)
+    if (createResult.isValid()) {
+        log.info("Issue created successfully: ${createResult.issue.key}")
+    } else {
+        log.error("Failed to create issue: ${createResult.errorCollection}")
+    }
+} else {
+    log.error("Validation failed: ${createValidationResult.errorCollection}")
+}
+
+// Dynamic Templates
+
+def projectKey = "DEMO"
+
+// Load project-specific JSON template
+def jsonFile = new File(scriptDirectory, "${projectKey}_IssueTemplate.json")
+if (!jsonFile.exists()) {
+    throw new FileNotFoundException("JSON template for project '${projectKey}' not found.")
+}
+
+// Parse and use JSON as shown above
+def template = jsonSlurper.parse(jsonFile)
+log.info("Loaded template for project: ${template}")
+
+```
