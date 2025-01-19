@@ -1,3 +1,75 @@
+
+---
+- name: Update IIS certificate binding using PowerShell
+  hosts: windows
+  vars:
+    site_name: "Default Web Site"          # IIS site name
+    port: 443                              # HTTPS port
+    ip_address: "*"                        # IP address (use * for all IPs)
+    cert_thumbprint: "THUMBPRINT_HERE"     # Thumbprint of the certificate
+    store_name: "MY"                       # Certificate store (usually MY or Personal)
+
+  tasks:
+    - name: Ensure WebAdministration module is available
+      ansible.windows.win_shell:
+        cmd: "Import-Module WebAdministration"
+        args:
+          executable: powershell
+      changed_when: false
+
+    - name: Check if IIS site exists
+      ansible.windows.win_shell:
+        cmd: |
+          if (-not (Get-Item "IIS:\\Sites\\{{ site_name }}")) {
+              Write-Host "Site not found"
+              exit 1
+          }
+      args:
+        executable: powershell
+      register: site_check
+      failed_when: "'Site not found' in site_check.stdout"
+
+    - name: Verify certificate exists in the store
+      ansible.windows.win_shell:
+        cmd: |
+          if (-not (Get-ChildItem -Path Cert:\LocalMachine\{{ store_name }} | Where-Object { $_.Thumbprint -eq '{{ cert_thumbprint }}' })) {
+              Write-Host "Certificate not found"
+              exit 1
+          }
+      args:
+        executable: powershell
+      register: cert_check
+      failed_when: "'Certificate not found' in cert_check.stdout"
+
+    - name: Remove existing HTTPS binding (if present)
+      ansible.windows.win_shell:
+        cmd: |
+          $binding = Get-WebBinding -Name "{{ site_name }}" -Protocol https -BindingInformation "{{ ip_address }}:{{ port }}:"
+          if ($null -ne $binding) {
+              Remove-WebBinding -Name "{{ site_name }}" -BindingInformation "{{ ip_address }}:{{ port }}:" -Protocol https
+          }
+      args:
+        executable: powershell
+
+    - name: Add new HTTPS binding
+      ansible.windows.win_shell:
+        cmd: |
+          New-WebBinding -Name "{{ site_name }}" -IPAddress "{{ ip_address }}" -Port {{ port }} -Protocol https
+          Push-WebConfiguration -PSPath IIS:\ -Location "{{ site_name }}" -Filter "system.applicationHost/sites/site[@name='{{ site_name }}']/bindings" `
+            -Value "<binding protocol='https' bindingInformation='{{ ip_address }}:{{ port }}:' sslFlags='1'>
+                      <certificateHash>{{ cert_thumbprint }}</certificateHash>
+                      <certificateStoreName>{{ store_name }}</certificateStoreName>
+                    </binding>"
+      args:
+        executable: powershell
+
+    - name: Restart IIS to apply changes
+      ansible.windows.win_service:
+        name: w3svc
+        state: restarted
+
+---
+
 - name: Collect 'ansible_date_time' only facts
   setup:
     gather_subset:
