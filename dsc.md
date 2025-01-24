@@ -1,4 +1,85 @@
+```code
+param (
+    [string]$AgentPoolName = "Default",
+    [string]$AgentName = "MyBuildAgent",
+    [string]$OrganizationUrl = "https://dev.azure.com/yourorganization",
+    [string]$PAT = "your-personal-access-token"
+)
 
+# Variables
+$AgentFolder = "C:\azagent"
+$AgentDownloadUrl = "https://vstsagentpackage.azureedge.net/agent/3.228.0/vsts-agent-win-x64-3.228.0.zip"
+$AgentZip = "$AgentFolder\agent.zip"
+
+# Create Agent Directory
+if (!(Test-Path -Path $AgentFolder)) {
+    New-Item -ItemType Directory -Path $AgentFolder | Out-Null
+    Write-Host "Created agent folder at $AgentFolder"
+}
+
+# Download the Agent Package
+Write-Host "Downloading agent package..."
+Invoke-WebRequest -Uri $AgentDownloadUrl -OutFile $AgentZip
+
+# Extract the Agent Package
+Write-Host "Extracting agent package..."
+Expand-Archive -Path $AgentZip -DestinationPath $AgentFolder -Force
+
+# Configure the Agent
+Write-Host "Configuring the agent..."
+$ConfigureScript = "$AgentFolder\config.cmd"
+Start-Process -FilePath $ConfigureScript -ArgumentList @(
+    "--unattended",
+    "--url $OrganizationUrl",
+    "--auth pat",
+    "--token $PAT",
+    "--pool $AgentPoolName",
+    "--agent $AgentName",
+    "--acceptTeeEula",
+    "--replace"
+) -NoNewWindow -Wait
+
+# Run the Agent as a Service
+Write-Host "Installing the agent as a service..."
+$RunAsServiceScript = "$AgentFolder\svc.cmd"
+Start-Process -FilePath $RunAsServiceScript -ArgumentList "install" -NoNewWindow -Wait
+
+Write-Host "Starting the agent service..."
+Start-Process -FilePath $RunAsServiceScript -ArgumentList "start" -NoNewWindow -Wait
+
+Write-Host "Azure DevOps Agent setup completed!"
+
+$AgentRemoveScript = "$AgentFolder\config.cmd"
+Start-Process -FilePath $AgentRemoveScript -ArgumentList "remove" -NoNewWindow -Wait
+
+
+
+
+
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Set variables
+      $AgentPoolName = "Default"
+      $AgentName = "DynamicBuildAgent"
+      $OrganizationUrl = "https://dev.azure.com/yourorganization"
+      $PAT = "$(AgentPAT)"
+
+      # Run the configuration script
+      Invoke-WebRequest -Uri "https://raw.githubusercontent.com/your-repo/agent-setup.ps1" -OutFile "agent-setup.ps1"
+      .\agent-setup.ps1 -AgentPoolName $AgentPoolName -AgentName $AgentName -OrganizationUrl $OrganizationUrl -PAT $PAT
+
+      Write-Host "Agent setup script executed successfully!"
+
+```
 
 To ensure that Microsoft 365 Desired State Configuration (DSC) functions correctly from an Azure DevOps build agent behind a firewall, you'll need to whitelist specific domains that the DSC modules interact with. These domains are essential for authentication, data retrieval, and management operations within Microsoft 365 services.
 
