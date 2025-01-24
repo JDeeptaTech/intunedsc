@@ -1,4 +1,30 @@
 ```yaml
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: DownloadSecureFile@1
+  inputs:
+    secureFile: 'your-certificate-file.cer'
+
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Define paths for the certificate
+      $certFilePath = "$(Agent.TempDirectory)\your-certificate-file.cer"
+      
+      # Import the certificate
+      Write-Host "Installing certificate..."
+      Import-Certificate -FilePath $certFilePath -CertStoreLocation Cert:\LocalMachine\Root
+      
+      Write-Host "Certificate installed successfully."
+
+```
+```yaml
 - task: AzurePowerShell@5
   inputs:
     azureSubscription: 'YourServiceConnectionName'
