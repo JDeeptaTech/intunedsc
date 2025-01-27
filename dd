@@ -1,0 +1,47 @@
+```
+  Infrastructure Provisioning
+
+Use VMware infrastructure provided by the client to deploy virtual machines.
+Automate VM provisioning using Terraform.
+Self-Service Endpoints
+
+Design and implement REST APIs for self-service operations (e.g., create, modify, delete VMs).
+Ensure API endpoints support authentication and role-based access.
+Automation with Ansible
+
+Automate configuration management and application deployment using Ansible.
+Create Ansible playbooks for required VM configurations.
+Integration
+
+Integrate Terraform, Ansible, and REST APIs to create a seamless automation workflow.
+Ensure compatibility with the client's VMware environment.
+Testing
+
+Perform functional testing for API endpoints.
+Test integration of Terraform and Ansible with VMware infrastructure.
+Documentation
+
+Provide documentation for API usage, Terraform configurations, and Ansible playbooks.
+Include user guides for self-service operations.
+```
+
+```
+  vRA Decommissioning
+
+The removal or decommissioning of the existing vRA application is not part of this project.
+Infrastructure Maintenance
+
+Ongoing maintenance or upgrades of the VMware infrastructure.
+Networking Configuration
+
+Any changes or configurations related to networking, firewalls, or VLAN setups.
+Custom VMware Features
+
+Customization of VMware features outside the requirements for this project.
+Third-Party Integrations
+
+Integration with third-party tools or platforms not specified in the requirements.
+Monitoring and Alerts
+
+Setting up monitoring and alerting systems is not included unless explicitly required.
+```
