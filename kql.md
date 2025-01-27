@@ -1,20 +1,4 @@
 
-```mail
-Dear All,
-
-I hope this email finds you well.
-
-As part of our scheduled CRs CHG4456001 and CHG4456092 (implementation window: 2:00 AM–8:00 AM BST), we initiated the implementation at 2:00 AM BST. Below is the summary of the progress:
-
-Change 1 (CHG4456001: 2:00–4:00 AM BST): Successfully implemented. Despite a few environmental challenges, the team executed the implementation with careful coordination, ensuring completion within the planned timeframe.
-Change 2 (CHG4456092: 4:00–8:00 AM BST): Partially completed. Due to environmental limitations, some configurations and testing could not be executed as planned.
-Next Steps:
-We have requested Srini to schedule another CR for Wednesday, 29-01-2025, to address the remaining tasks.
-
-I would like to extend my heartfelt thanks to everyone who contributed to the successful execution of the first change and supported the overall implementation process. Your dedication, cooperation, and commitment were instrumental in ensuring progress despite the challenges encountered.
-
-Please do not hesitate to reach out if you have any questions or require further details. Thank you once again for your continued understanding and support.
-```
 ```kql
 AzureDiagnostics
 | where Category in ("AzureFirewallNetworkRule", "AzureFirewallApplicationRule")
