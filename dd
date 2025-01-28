@@ -1,23 +1,32 @@
 ```
- Conduct a comprehensive assessment of the existing VMware design and infrastructure.
-Organize knowledge transfer sessions covering current processes, such as template promotion, OVF testing, and build decommissioning.
-Identify and document functional and non-functional platform requirements.
-Agree on deliverables, including CRUD operations, state file management, and API features.
-Design and implement REST APIs for self-service operations such as creating, modifying, and deleting servers.
-Ensure APIs include robust authentication mechanisms and role-based access controls.
-Leverage VMware infrastructure to automate virtual machine provisioning using Terraform.
-Create Ansible playbooks for VM configuration and automate application deployments.
-Develop a seamless integration between Terraform, Ansible, and REST APIs.
-Ensure compatibility with the VMware environment provided by the client.
-Conduct comprehensive functional testing of all API endpoints and workflows.
-Validate the integration between Terraform, Ansible, and the VMware infrastructure.
-Deliver detailed documentation for API usage, Terraform configurations, and Ansible playbooks.
-Provide user guides for self-service operations to facilitate end-user adoption.
-Creation or maintenance of golden images for server provisioning is not part of this project.
-The removal or decommissioning of the existing vRA application is excluded from the project scope.
-Ongoing maintenance, upgrades, or troubleshooting of the VMware infrastructure.
-Modifications to networking configurations, firewalls, or VLAN setups.
-Customization of VMware features beyond the requirements specified in this project.
-Integration with tools or platforms outside the agreed scope of this project.
-Setting up monitoring and alerting systems unless explicitly required.
+# Define the server and port
+$Server = "example.com"  # Replace with the target server
+$Port = 443              # Default port for HTTPS
+
+# Create a TCP connection to the server
+$TcpClient = New-Object System.Net.Sockets.TcpClient
+$TcpClient.Connect($Server, $Port)
+
+# Create an SSL stream to retrieve certificate details
+$SslStream = New-Object System.Net.Security.SslStream($TcpClient.GetStream(), $false, { $true })
+
+# Authenticate the SSL stream
+$SslStream.AuthenticateAsClient($Server)
+
+# Get the certificate details
+$Certificate = $SslStream.RemoteCertificate
+$CertificateDetails = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $Certificate
+
+# Display certificate details
+Write-Host "Server: $Server"
+Write-Host "Issuer: $($CertificateDetails.Issuer)"
+Write-Host "Subject: $($CertificateDetails.Subject)"
+Write-Host "Valid From: $($CertificateDetails.NotBefore)"
+Write-Host "Valid To: $($CertificateDetails.NotAfter)"
+Write-Host "Thumbprint: $($CertificateDetails.Thumbprint)"
+
+# Clean up
+$SslStream.Close()
+$TcpClient.Close()
+
 ```
