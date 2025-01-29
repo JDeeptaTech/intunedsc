@@ -1,4 +1,8 @@
 ```
+- name: Get Certificate valid days
+  set_fact:
+    days_difference: "{{ (certificate_valid_to_date.split('T')[0] | to_datetime('%Y-%m-%d')) - (ansible_date_time.date | to_datetime('%Y-%m-%d')) }}"
+
 # Define the server and port
 $Server = "example.com"  # Replace with the target server
 $Port = 443              # Default port for HTTPS
