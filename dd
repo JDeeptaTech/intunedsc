@@ -1,4 +1,10 @@
 ```
+- name: Run setup using win_command
+  hosts: windows
+  tasks:
+    - name: Execute setup.exe
+      win_command: '"E:\Veritas Enterprise Vault\Server\X64\setup (x64).exe" /s /v"LOGFILE=D:\logs\LOG.log"'
+
 - name: Get Certificate valid days
   set_fact:
     days_difference: "{{ (certificate_valid_to_date.split('T')[0] | to_datetime('%Y-%m-%d')) - (ansible_date_time.date | to_datetime('%Y-%m-%d')) }}"
