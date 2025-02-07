@@ -1,16 +1,6 @@
 ``` powershell
 
-Thank you for joining today's call. Below is a summary of the discussion and the next steps. Please feel free to add anything I may have missed.
 
-Key Points & Next Steps:
-Ansible Logs & Task Timeout Issue: The issue persists, and other teams are also experiencing similar challenges.
-Task Creation & Tracking: Michael’s team will create a task and share it with this group to facilitate tracking and resolution.
-Investigation & ETA: Michael will collaborate with the team to investigate the issue further. As of now, there is no ETA for resolving this limitation in SAFE.
-Alternative Solutions: In the meantime, Wipro will explore alternative approaches or solutions to ensure project delivery timelines are met.
-Please let me know if there are any additional points to include. Your continued support and collaboration are greatly appreciated.
-
-Best Regards,
-Pradeep
 
 # 1. Install the Microsoft Graph PowerShell SDK if not already installed
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
