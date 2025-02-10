@@ -1,4 +1,12 @@
 ```
+Good morning. I hope you are doing well.
+
+Since yesterday afternoon, I have been experiencing issues switching my account to root. This morning, I was able to switch to root; however, I am now receiving an error stating that I am not allowed. I obtained the root password from Dev TPAM, but I am unsure if I am missing any steps.
+
+Could you please advise whom I should reach out to for further assistance?
+
+Thank you in advance for your help.
+
 - name: Run setup using win_command
   hosts: windows
   tasks:
