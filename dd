@@ -1,13 +1,5 @@
 ```
-Dear Team,
 
-Today, we will be working on updating the CR (Change Request) creation process to ensure that newly identified CRs are appropriately filtered and do not overlap with any previously open CRs.
-
-Additionally, we will proceed with implementing the CR closure process. Please ensure that all necessary steps are followed for a smooth transition.
-
-Let me know if you have any questions or require further clarification.
-
-Best regards,
 - name: Run setup using win_command
   hosts: windows
   tasks:
