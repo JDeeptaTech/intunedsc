@@ -4,10 +4,10 @@
   hosts: localhost
   gather_facts: no
   vars:
-    api_base_url: "https://it-infra-apis.cloud.uk.hsbc/cto-pa-mssql-database-backup/api/v1"
+    api_base_url: "https://c/-pa-mssql-database-backup/api/v1"
     post_payload:
-      hostName: "GBW25041921"
-      instanceName: "UUKFVF501"
+      hostName: " "
+      instanceName: ""
       backupHistory: "lastfullbackup"
       databaseName: "AllUserDatabases"
   tasks:
