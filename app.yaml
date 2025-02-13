@@ -1,5 +1,50 @@
 
 ---
+- name: Trigger Backup Listing and Wait for Completion
+  hosts: localhost
+  gather_facts: no
+  vars:
+    api_base_url: "https://it-infra-apis.cloud.uk.hsbc/cto-pa-mssql-database-backup/api/v1"
+    post_payload:
+      hostName: "GBW25041921"
+      instanceName: "UUKFVF501"
+      backupHistory: "lastfullbackup"
+      databaseName: "AllUserDatabases"
+  tasks:
+
+    - name: Invoke the first API request (POST)
+      uri:
+        url: "{{ api_base_url }}/backup-list-requests"
+        method: POST
+        body_format: json
+        body: "{{ post_payload }}"
+        return_content: yes
+        headers:
+          Content-Type: "application/json"
+      register: post_response
+
+    - name: Extract request ID
+      set_fact:
+        request_id: "{{ post_response.json.requestId }}"
+
+    - name: Wait for backup job to complete
+      uri:
+        url: "{{ api_base_url }}/backup-list-requests/{{ request_id }}"
+        method: GET
+        return_content: yes
+        headers:
+          Content-Type: "application/json"
+      register: get_response
+      until: get_response.json.status == "Success"
+      retries: 10
+      delay: 10
+
+    - name: Display backup details
+      debug:
+        var: get_response.json.details
+---
+
+
 - name: Update IIS certificate binding using PowerShell
   hosts: windows
   vars:
